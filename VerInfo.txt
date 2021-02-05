@@ -1,2 +1,2 @@
 Version v1.1.0
-Experimenter AIAyiotis
+Experimenter CFB
