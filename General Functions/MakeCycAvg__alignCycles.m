@@ -6,9 +6,18 @@ function [type,starts,ends,stims] = MakeCycAvg__alignCycles(info,Fs,ts,stim)
             freqs = fparts(contains(fparts,'Hz'));
             freq = zeros(1,length(freqs));
             for i = 1:length(freqs)
-                freq(i) = str2double(strrep(freqs(i),'Hz',''));
+                tempfreq = strrep(freqs(i),'Hz','');
+                tempfreq = strrep(tempfreq,'p','.');
+                freq(i) = str2double(tempfreq);
             end
-            amp = str2double(strrep(fparts{contains(fparts,'dps')},'dps',''));
+            amp = str2double(strrep(fparts{contains(fparts,'dps')},'dps','')); % but what about translations?
+%             if contains(info.dataType,'Rotation')
+%                 amp = str2double(strrep(fparts{contains(fparts,'dps')},'dps',''));
+%             elseif contains(info.dataType,'Translation')
+%                 tempamp = strrep(fparts{contains(fparts,'mpsq')},'mpsw','');
+%                 tempamp = strrep(tempamp,'p','.');
+%                 amp = str2double(tempamp);
+%             end
             snip_len = floor(Fs/min(freq));
             template = zeros(length(freq),snip_len);  
             for i = 1:length(freq)
@@ -93,8 +102,10 @@ function [type,starts,ends,stims] = MakeCycAvg__alignCycles(info,Fs,ts,stim)
             type = 1;
         else
             error('Unknown Data Type (RotaryChair/aHIT)')
-        end    
+        end 
+        
     elseif contains(info.dataType,'eeVOR') %align using the trigger signal
+        
         if contains(info.dataType,{'65Vector','MultiVector'})
             type = 1;
             %The trigger is actually showing when the trapezoids start and end. There
@@ -126,7 +137,9 @@ function [type,starts,ends,stims] = MakeCycAvg__alignCycles(info,Fs,ts,stim)
             snip_len = round(median(diff(starts)),0);
             ends = starts + snip_len - 1;
             fparts = split(info.dataType,'-');
-            freq = str2double(strrep(fparts{contains(fparts,'Hz')},'Hz',''));
+            tempfreq = strrep(fparts{contains(fparts,'Hz')},'Hz','');
+            tempfreq = strrep(tempfreq,'p','.');
+            freq = str2double(tempfreq);
             amp = str2double(strrep(fparts{contains(fparts,'dps')},'dps',''));
             stims = amp*sin(2*pi*freq*(ts(1:snip_len)));
         elseif contains(info.dataType,{'PulseTrain','Autoscan'}) % (high = on, low = off)
