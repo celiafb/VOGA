@@ -1,7 +1,6 @@
 %% Load in data
 clc; clear all;
 directory='/Users/celia/Desktop/20210120-Ch156-normTVOR-REarGent/';
-%directory = '/Volumes/labdata/Hageman/Moog/MoogChinchData-KH/20190523-Ch141-normTVOR/';
 typeOfData='Movement'; %'Movement' data? Or 'ProsthesisOnly' Data?
  
 afterProsthSyncDate=true; %after 10/19/2016?
@@ -26,19 +25,20 @@ velocityFiles=true; %For analysis of velocity data
 %% Set Up Variables Unique to whether Motion or Prosthesis Files
 switch(typeOfData)
     case 'Movement'
-        movementDirection='Yaw'; %'Yaw' 'LARP' 'RALP' 'Pitch' 'Roll' 'ObliqueAngleHorizontal' 'ObliqueAngleSaggital' 'ObliqueAngleCoronal' 'ObliqueAngleCombo' 'Lateral' 'Surge' 'Heave' 'StaticTilt'
+        movementDirection='Surge'; %'Yaw' 'LARP' 'RALP' 'Pitch' 'Roll' 'ObliqueAngleHorizontal' 'ObliqueAngleSaggital' 'ObliqueAngleCoronal' 'ObliqueAngleCombo' 'Lateral' 'Surge' 'Heave', this code is currently not adapted for Static tilt
         %values only used for oblique angle
-        theta=0;
-        phi=90;
+        theta=45;
+        phi=45;
         
         [mpufileList,coilfileList,freqList,ampList,numOfFiles,tiltAxisList,tiltDegList]=getMultipleFiles(directory,movementDirection,theta,phi);
-        
-        fdr = strcat('Analyze_',gainFile(1:8),'_',gainFile(10:14),'_',typeOfData,'_',movementDirection);
-        mkdir(directory, fdr); % here we will store the files to then analyze with VOGA
-        
+        if strcmp(movementDirection,'ObliqueAngleHorizontal') || strcmp(movementDirection,'ObliqueAngleSaggital') || strcmp(movementDirection,'ObliqueAngleCoronal')  || strcmp(movementDirection,'ObliqueAngleCombo')
+            fdr = strcat('Analyze_',gainFile(1:8),'_',gainFile(10:14),'_',typeOfData,'_',movementDirection,'_theta',num2str(theta),'_','phi',num2str(phi));
+        else
+            fdr = strcat('Analyze_',gainFile(1:8),'_',gainFile(10:14),'_',typeOfData,'_',movementDirection);
+        end        
     case 'ProsthesisOnly'
-        typeOfStim='VirtSineRotation';%'VirtSineTranslation'; %'PulseTrains' 'VirtSineRotation' 'StaticTilt' '
-        endOrgan='LH';
+        typeOfStim='VirtSineTranslation';%'VirtSineTranslation'; %'PulseTrains' 'VirtSineRotation' 'StaticTilt' '
+        endOrgan='Utricle';
         
         if(strcmp(typeOfStim,'PulseTrains'))
             freq=2;
@@ -49,11 +49,15 @@ switch(typeOfData)
         end
         
         [coilfileList, stimParamCells, numOfFiles, stimE, refE]=getStimulationFiles(directory,endOrgan,typeOfStim);
-
-        fdr = strcat('Analyze_',gainFile(1:8),'_',gainFile(10:14),'_',typeOfData,'_',typeOfStim,'_',endOrgan);
-        mkdir(directory, fdr); % here we will store the files to then analyze with VOGA
         
+        fdr = strcat('Analyze_',gainFile(1:8),'_',gainFile(10:14),'_',typeOfData,'_',typeOfStim,'_',endOrgan);
 end
+
+mkdir(directory, fdr); % here we will store the files to then analyze with VOGA
+mkdir(fullfile(directory,fdr),'Segmented Files')
+mkdir(fullfile(directory,fdr),'Raw Files')
+mkdir(fullfile(directory,fdr),'Cycle Averages')
+
 %% Calculate/Load Gains
 if (gainsInFile==true)
     tempGains=loadGains(directory,coilfileList{1}); %load gains from first file - assume all other files are same
@@ -109,7 +113,7 @@ if (strcmp(typeOfData,'Movement'))
         end
 end
 %% Load Data
-cd(fullfile(directory,fdr));
+cd(fullfile(directory,fdr,'Segmented Files'));
 for m = 1:numOfFiles
     
     clear mpuData coilData tempGains filteredRawData rotR rotL mpuAligned filteredRawAngVelR filteredRawAngVelL
@@ -154,7 +158,6 @@ for m = 1:numOfFiles
             else
                 coilData=readcoils(directory,coilFile,false);
             end
-            
         case 'ProsthesisOnly'
             stimParamFile=stimParamCells{m};
             NFilt=50; %all sinusoidal data at this point is 1 Hz, so this filter value is fine for all stim files
@@ -326,7 +329,7 @@ for m = 1:numOfFiles
         numRamps=2;
         if(strcmp(movementDirection,'LARP')||strcmp(movementDirection,'RALP')||strcmp(movementDirection,'Yaw'))
             timePreAndPost=2; %seconds before motion/stimulation starts
-        elseif(strcmp(direction,'Prosthesis'))
+        elseif(strcmp(movementDirection,'Prosthesis'))
             timePreAndPost=10; %seconds before motion/stimulation starts
         else
             timePreAndPost=5; %seconds before motion/stimulation starts
@@ -356,24 +359,52 @@ for m = 1:numOfFiles
         stopIdx = length(motionSync)-extraTime-1;
     end
     
+    [motionOffset,motionMag,motionSinphase]=SingleFreqDFT(pshortenedTT,pshortenedMotion,freq);
+    for i=1:length(pshortenedMotion)
+        motionFit(i)=motionMag*sin(2*pi*freq*i/1000+motionSinphase);
+    end
     
-    
-    
+   
+    pshortenedMotion = motionFit;
+
     %% Finally, save in a Data structure and save as .mat file
-    if strcmp(movementDirection,'Yaw')
-        movementDirection = 'LHRH'; % VOGA convention
+    under_indices = strfind(coilFile,'_');
+    dash_indices = strfind(coilFile,'-');
+    coil_indices = strfind(coilFile,'.coil');
+    if contains(coilFile,'Lights')
+        Light = 'Light-';
+    else
+        Light = '-';
     end
     if strcmp(typeOfData,'Movement')
-        typeOfData = 'MOOG'; % movement, VOGA convention
+        typeOfData2 = 'MOOG'; % movement, VOGA convention
         if strcmp(movementDirection,'Yaw') || strcmp(movementDirection,'LARP') || strcmp(movementDirection,'RALP') || strcmp(movementDirection,'Pitch') || strcmp(movementDirection,'Roll')
             exptcond = 'Rotation';
-            fname = sprintf(strcat(coilFile(17:21),'-','VisitNA','-',coilFile(1:8),'-',typeOfData,'-Sine-',exptcond,'-NoStimLight','-',movementDirection,'-',coilFile(dash_indices(1):dash_indices(end)-1),'.mat'));
-            aaaa = 1;
+            if strcmp(movementDirection,'Yaw')
+                movementDirection2 = 'LHRH'; % VOGA convention
+            else
+                movementDirection2 = movementDirection;
+            end
+            fname = sprintf(strcat(coilFile(17:21),'-','VisitNA','-',coilFile(1:8),'_',coilFile(10:15),'-',typeOfData2,'-Sine-',exptcond,'-NoStim',Light,movementDirection2,coilFile(dash_indices(1):dash_indices(end)-3),'Hz.mat'));
         else
             exptcond = 'Translation';
+            if strcmp(movementDirection,'ObliqueAngleHorizontal') || strcmp(movementDirection,'ObliqueAngleSaggital') || strcmp(movementDirection,'ObliqueAngleCoronal')  || strcmp(movementDirection,'ObliqueAngleCombo')
+                movementDirection2 = strcat('theta',num2str(theta),'-','phi',num2str(phi), coilFile(dash_indices(1):dash_indices(3)-3));
+            elseif strcmp(movementDirection,'Lateral') || strcmp(movementDirection,'Surge') || strcmp(movementDirection,'Heave')
+                movementDirection2 = strcat(movementDirection, coilFile(dash_indices(1):coil_indices(end)-3));
+            end
+            fname = sprintf(strcat(coilFile(17:21),'-','VisitNA','-',coilFile(1:8),'_',coilFile(10:15),'-',typeOfData2,'-Sine-',exptcond,'-NoStim',Light,movementDirection2,'Hz.mat'));
         end
     else
-        typeOfData = 'eeVOR'; % prosthesis, VOGA convention
+        typeOfData2 = 'eeVOR'; % prosthesis, VOGA convention
+        exptcond = strcat(coilFile(under_indices(3)+9:dash_indices(1)-1));
+        movementDirection2 = strcat(coilFile(dash_indices(1)+1:dash_indices(6)-3),'Hz',coilFile(dash_indices(6):coil_indices(1)-1));
+        fname = sprintf(strcat(coilFile(17:21),'-','VisitNA','-',coilFile(1:8),'_',coilFile(10:15),'-',typeOfData2,'-Sine-',exptcond,'-MotionMod',Light,movementDirection2,'.mat'));
+    end
+    
+    if strcmp(typeOfData,'ProsthesisOnly') || strcmp(exptcond,'Translation')
+        toggle = createToggle(pshortenedMotion,Fs,freq,3);
+        pshortenedMotion = {pshortenedMotion toggle};
     end
     
     pshortenedFileL = rot2fick(pshortenedFileL); % inputs XYZ and outputs ZYX
@@ -407,17 +438,14 @@ for m = 1:numOfFiles
     var{m}.info.subject = '';
     var{m}.info.ear = '';
     var{m}.info.visit = '';
-    var{m}.info.goggle_ver = '';
+    var{m}.info.goggle_ver = 'Moogles1';
     var{m}.info.goggle_reorient_ang = '';
     var{m}.info.exp_date = gainFile(1:8);
     dir2 = dir(fullfile(directory,'*.docx'));
     var{m}.info.rawnotes = strcat(dir2.folder,'/',dir2.name);
     var{m}.info.rawfile = strcat(dir2.folder,'/',coilFile);
-    var{m}.info.name = coilFile;
-    under_indices = strfind(coilFile,'_');
-    dash_indices = strfind(coilFile,'-');
-    coil_indices = strfind(coilFile,'.coil');
-    var{m}.info.dataType = coilFile(under_indices(end)+1:coil_indices(1)-1);
+    var{m}.info.name = fname;
+    var{m}.info.dataType = fname(1:end-4);
     
     Data  = var{m};
     save(fname,'Data');
@@ -425,6 +453,7 @@ for m = 1:numOfFiles
 end
 
 fclose('all');
+close all; clear all; clc;
 % So at this point we have, for both prosthesis or movement data, the
 % actual data in pShortenedFileR/L, vShortenedFileR/L,
 % p/vShortenedMotion (not sure which to use) with p/vShortenedTT

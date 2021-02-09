@@ -1,5 +1,23 @@
 function [type,starts,ends,stims] = MakeCycAvg__alignCycles(info,Fs,ts,stim)
-    if contains(info.dataType,{'RotaryChair','aHIT'})||contains(info.goggle_ver,'Moogles') %Align based on real/virtual motion traces
+    if contains(info.dataType,'Translation')
+        type = 1;
+        starts = 1;
+        ends = [];
+        toggle = stim{2};
+        for i = 2:length(toggle)
+            if toggle(i) ~= toggle(i-1) % new cycle
+                if i < length(toggle)
+                    ends = [ends i-1];
+                    starts = [starts i];
+                else
+                    ends = [ends i];
+                end 
+            end
+        end
+        snip_len = median(ends-starts);
+        ends = starts + snip_len - 1;
+        stims = stim{1};
+    elseif contains(info.dataType,{'RotaryChair','aHIT'})||contains(info.goggle_ver,'Moogles') %Align based on real/virtual motion traces
         if contains(info.dataType,'Sine')
             type = 1;
             fparts = split(info.dataType,'-');
