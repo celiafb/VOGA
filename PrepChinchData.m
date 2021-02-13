@@ -51,7 +51,7 @@ if quest == 1 % analyzing only 1 type of experiment
         end
     elseif strcmp(typeOfData,'ProsthesisOnly')
         filetypes{1} = input('Movement direction? (VirtSineRotation, VirtSineTranslation): ','s');
-        endOrgan = input('End organ? ');
+        endOrgan = input('End organ? ','s');
     end
 elseif quest == 2 % analyzing only all types of experiment
     if strcmp(typeOfData,'Movement')
