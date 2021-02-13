@@ -1,14 +1,31 @@
 %% Load in data
 clc; clear all;
-directory='/Users/celia/Desktop/20210120-Ch156-normTVOR-REarGent/';
-typeOfData='Movement'; %'Movement' data? Or 'ProsthesisOnly' Data?
+warning('off');
+%directory=uigetdir(fullfile('/Volumes','labdata','Hageman','Moog','MoogChinchData-KH')); % Change '/Volumes' depending on whether you are on a Windows or Mac
+directory = uigetdir();
+directory=strcat(directory,'/'); % Change '/' to '\' depending on whether you are on a Windows or Mac
+typeOfData=input('Movement or ProsthesisOnly data? ','s'); %'Movement' data? Or 'ProsthesisOnly' Data?
  
 afterProsthSyncDate=true; %after 10/19/2016?
 gainsInFile=false; %are gains stored in file? If false - make sure you have a txt file with gain values for the script to read.
-gainFile='20210120-Ch156-gains.txt';
 haveOffsetFiles=true; %do you have offset files? if true, fill them in below. if false - fill in ZEROS below
-coilOrientation1='20210120_095156_Ch156_offset_orientation1.coil';
-coilOrientation2='20210120_095501_Ch156_offset_orientation2.coil';
+
+% Assuming that we have both gain and offset files, otherwise program ends!
+filist = dir(directory);
+for x = 1:length(filist)
+    if contains(filist(x).name,'gains.txt')
+        gainFile = filist(x).name;
+    elseif contains(filist(x).name,'offset_orientation1.coil')
+        coilOrientation1 = filist(x).name;
+    elseif contains(filist(x).name,'offset_orientation2.coil')
+        coilOrientation2 = filist(x).name;
+    end
+end
+if ~exist('gainFile','var') || ~exist('coilOrientation1','var') || ~exist('coilOrientation2','var')
+    fprintf('Error: could not find gains and/or offset files');
+    return
+end
+    
  
  
  
@@ -19,26 +36,92 @@ REF=2000; %point of reference for analysis - usually use the start of movemnet
 %use 5000 for prosthesis sinusoids
 %use 2000 for normal rotation sinusoids
  
-positionFiles=true; %For analysis of positional data
-velocityFiles=true; %For analysis of velocity data
+positionFiles=true; %For analysis of positional data, will feed into VOGA
+velocityFiles=true; %For analysis of velocity data, doesn't go into VOGA but left here in case we need it
  
+quest = input('Would you like to analyze a single type of experiment (1) or all the experiments in this folder (2)? ');
+if quest == 1 % analyzing only 1 type of experiment
+    if strcmp(typeOfData,'Movement')
+        filetypes{1} = input('Movement direction? (Yaw, LARP, RALP, Pitch, Roll, ObliqueAngleHorizontal, ObliqueAngleSaggital, ObliqueAngleCoronal, ObliqueAngleCombo, Lateral, Surge, Heave): ','s');
+        if contains(filetypes{1},'ObliqueAngle')
+            theta = input('Theta? ');
+            phi = input('Phi? ');
+        else
+            theta = 0; phi = 0; % default values that won't be used, but are still fed into getMultipleFiles.m
+        end
+    elseif strcmp(typeOfData,'ProsthesisOnly')
+        filetypes{1} = input('Movement direction? (VirtSineRotation, VirtSineTranslation): ','s');
+        endOrgan = input('End organ? ');
+    end
+elseif quest == 2 % analyzing only all types of experiment
+    if strcmp(typeOfData,'Movement')
+        alltypes = {'Yaw-0-0' 'LARP-0-0' 'RALP-0-0' 'Pitch-0-0' 'Roll-0-0' ... % this format is movementDirection_theta_phi
+            'ObliqueAngleHorizontal-30-90' 'ObliqueAngleHorizontal-45-90' 'ObliqueAngleHorizontal-60-90' 'ObliqueAngleHorizontal-120-90' 'ObliqueAngleHorizontal-135-90' 'ObliqueAngleHorizontal-150-90'...
+            'ObliqueAngleSaggital-90-30' 'ObliqueAngleSaggital-90-45' 'ObliqueAngleSaggital-90-60' 'ObliqueAngleSaggital-270-30' 'ObliqueAngleSaggital-270-45' 'ObliqueAngleSaggital-270-60'...
+            'ObliqueAngleCoronal-0-30' 'ObliqueAngleCoronal-0-45' 'ObliqueAngleCoronal-0-60' 'ObliqueAngleCoronal-180-30' 'ObliqueAngleCoronal-180-45' 'ObliqueAngleCoronal-180-60' ...
+            'ObliqueAngleCombo-45-30' 'ObliqueAngleCombo-45-45' 'ObliqueAngleCombo-45-60' 'ObliqueAngleCombo-135-30' 'ObliqueAngleCombo-135-45' 'ObliqueAngleCombo-135-60' 'ObliqueAngleCombo-225-30' 'ObliqueAngleCombo-225-45' 'ObliqueAngleCombo-225-60' 'ObliqueAngleCombo-315-30' 'ObliqueAngleCombo-315-45' 'ObliqueAngleCombo-315-60'...
+            'Lateral-0-0' 'Surge-0-0' 'Heave-0-0'};
+        filenames = [filist(1:length(filist)).name]; % get all of the file names in the chosen directory
+        filetypes = {}; 
+        ii = 0;      
+        for l = 1:length(alltypes)
+            dash_ind = strfind(alltypes{l},'-');
+            if contains(filenames,alltypes{l}(1:dash_ind(1)-1)) % here we are selecting only the movementDirection from alltypes, and seeing if we ran trials with that direction
+                ii = ii + 1;
+                filetypes{ii} =alltypes{l}; % if so, we will analyze it
+            end
+        end
+    elseif strcmp(typeOfData,'ProsthesisOnly')
+        alltypes = {'VirtSineRotation-LA' 'VirtSineRotation-LP' 'VirtSineRotation-LH'... % this format is typeOfStim_endOrgan
+            'VirtSineTranslation-Utricle' 'VirtSineTranslation-Saccule'};
+        filenames = [filist(1:length(filist)).name]; % and this is the same process as for movement data
+        filetypes = {};
+        ii = 0;      
+        for l = 1:length(alltypes)
+            dash_ind = strfind(alltypes{l},'-');
+            if contains(filenames,alltypes{l}(1:dash_ind(1)-1))
+                ii = ii + 1;
+                filetypes{ii} =alltypes{l};
+            end
+        end
+    end
+else
+    fprintf('Error: erroneous input from user');
+    return
+end
+
+for idx = 1:length(filetypes) % we will loop through this code for every type of trial run in the experiment
+    if strcmp(typeOfData, 'Movement')
+        movementDirection = filetypes{idx}; % focusing on a single movement direction
+    elseif strcmp(typeOfData, 'ProsthesisOnly')
+        typeOfStim = filetypes{idx}; % focusing on a single stimulus type
+    end
 %% Set Up Variables Unique to whether Motion or Prosthesis Files
 switch(typeOfData)
     case 'Movement'
-        movementDirection='Surge'; %'Yaw' 'LARP' 'RALP' 'Pitch' 'Roll' 'ObliqueAngleHorizontal' 'ObliqueAngleSaggital' 'ObliqueAngleCoronal' 'ObliqueAngleCombo' 'Lateral' 'Surge' 'Heave', this code is currently not adapted for Static tilt
-        %values only used for oblique angle
-        theta=45;
-        phi=45;
+        
+        if (quest == 2)
+                dash_ind = strfind(movementDirection,'-');
+                theta = str2num(movementDirection(dash_ind(1)+1:dash_ind(2)-1)); % here we are using the format set above to get the theta, phi, and movement directions
+                phi = str2num(movementDirection(dash_ind(2)+1:end));
+                movementDirection = movementDirection(1:dash_ind(1)-1);
+        end
         
         [mpufileList,coilfileList,freqList,ampList,numOfFiles,tiltAxisList,tiltDegList]=getMultipleFiles(directory,movementDirection,theta,phi);
+        % and now create the folder name where we will store the data to analyze
         if strcmp(movementDirection,'ObliqueAngleHorizontal') || strcmp(movementDirection,'ObliqueAngleSaggital') || strcmp(movementDirection,'ObliqueAngleCoronal')  || strcmp(movementDirection,'ObliqueAngleCombo')
             fdr = strcat('Analyze_',gainFile(1:8),'_',gainFile(10:14),'_',typeOfData,'_',movementDirection,'_theta',num2str(theta),'_','phi',num2str(phi));
         else
             fdr = strcat('Analyze_',gainFile(1:8),'_',gainFile(10:14),'_',typeOfData,'_',movementDirection);
         end        
     case 'ProsthesisOnly'
-        typeOfStim='VirtSineTranslation';%'VirtSineTranslation'; %'PulseTrains' 'VirtSineRotation' 'StaticTilt' '
-        endOrgan='Utricle';
+        %         typeOfStim='VirtSineRotation';%'VirtSineTranslation'; %'PulseTrains' 'VirtSineRotation' 'StaticTilt' '
+        %         endOrgan='LH';
+        if (quest == 2)
+                dash_ind = strfind(typeOfStim,'-');
+                endOrgan = typeOfStim(dash_ind(1)+1:end);
+                typeOfStim = typeOfStim(1:dash_ind(1)-1);
+        end
         
         if(strcmp(typeOfStim,'PulseTrains'))
             freq=2;
@@ -304,15 +387,10 @@ for m = 1:numOfFiles
         
         pshortenedFileR=filteredRotrefR(startIdx:stopIdx,:); %
         pshortenedFileL=filteredRotrefL(startIdx:stopIdx,:);
-        vshortenedFileR=angVelR(startIdx:stopIdx,:); %
-        vshortenedFileL=angVelL(startIdx:stopIdx,:);
         
         pshortenedTT=1/1000:0.001:length(pshortenedFileR)/1000;
         pshortenedSyncs=zeros(length(pshortenedTT),1);
         pmotionSync(:,1)=motionSync(:,1)-startIdx+1;
-        vshortenedTT=1/1000:0.001:length(vshortenedFileR)/1000;
-        vshortenedSyncs=zeros(length(vshortenedTT),1);
-        vmotionSync(:,1)=motionSync(:,1)-startIdx+1;
         
         for i=1:length(motionSync)
             if (motionSync(i,1)>0 && motionSync(i,1)<length(pshortenedTT))
@@ -320,8 +398,6 @@ for m = 1:numOfFiles
             end
         end
         pshortenedMotion=pshortenedSyncs;
-        
-        vshortenedMotion=pshortenedSyncs;
         
     else
         motionSync=mpuToUse;
@@ -339,12 +415,9 @@ for m = 1:numOfFiles
         
         pshortenedFileR=filteredRotrefR(extraTime:(length(filteredRotrefR)-extraTime),:);
         pshortenedFileL=filteredRotrefL(extraTime:(length(filteredRotrefL)-extraTime),:);
-        vshortenedFileR=angVelR(extraTime:(length(angVelR)-extraTime),:);
-        vshortenedFileL=angVelL(extraTime:(length(angVelL)-extraTime),:);
         
         
         pshortenedMotion=motionSync(extraTime:(length(motionSync)-extraTime)); %don't need the -1 for position
-        vshortenedMotion=motionSync(extraTime:(length(motionSync)-extraTime-1)); %Need the -1 for velocity
         
         headVel = filteredMPU(extraTime:(length(filteredMPU)-extraTime),6:8); % For VOGA compatibility
         headAccel = filteredMPU(extraTime:(length(filteredMPU)-extraTime),3:5); % For VOGA compatibility
@@ -353,8 +426,6 @@ for m = 1:numOfFiles
         
         ptt=1/1000:0.001:length(filteredRotrefR)/1000;
         pshortenedTT=1/1000:0.001:length(pshortenedFileR)/1000;
-        vtt=1/1000:0.001:length(angVelR)/1000;
-        vshortenedTT=1/1000:0.001:length(vshortenedFileR)/1000;
         startIdx = extraTime;
         stopIdx = length(motionSync)-extraTime-1;
     end
@@ -402,11 +473,10 @@ for m = 1:numOfFiles
         fname = sprintf(strcat(coilFile(17:21),'-','VisitNA','-',coilFile(1:8),'_',coilFile(10:15),'-',typeOfData2,'-Sine-',exptcond,'-MotionMod',Light,movementDirection2,'.mat'));
     end
     
-    if strcmp(typeOfData,'ProsthesisOnly') || strcmp(exptcond,'Translation')
-        toggle = createToggle(pshortenedMotion,Fs,freq,3);
-        pshortenedMotion = {pshortenedMotion toggle};
-    end
     
+    toggle = createToggle(pshortenedMotion,Fs,freq,3);
+    pshortenedMotion = {pshortenedMotion toggle};
+
     pshortenedFileL = rot2fick(pshortenedFileL); % inputs XYZ and outputs ZYX
     pshortenedFileR = rot2fick(pshortenedFileR);
     
@@ -451,8 +521,9 @@ for m = 1:numOfFiles
     save(fname,'Data');
     
 end
-
 fclose('all');
+clear Data var toggle pShortenedMotion dir2 fname exptcond analysisType pshortenedTT pshortenedFileL pshortenedFileR coilFile headVel headAccel
+end
 close all; clear all; clc;
 % So at this point we have, for both prosthesis or movement data, the
 % actual data in pShortenedFileR/L, vShortenedFileR/L,

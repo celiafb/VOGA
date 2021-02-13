@@ -117,18 +117,7 @@ for i = 1:length(starts)
     keep_inds(:,i) = starts(i):ends(i);
 end
 keep_inds = keep_inds - starts(1)+1;
-if ends(end)-length(te) > 0         % CFB edits since after making all the cycles the same length, ends was longer than te
-    ts = [ts zeros(1,ends(end)-length(te))];
-    Data.LE_Position_X = [Data.LE_Position_X ;zeros(1,ends(end)-length(te))'];
-    Data.LE_Position_Y = [Data.LE_Position_Y ;zeros(1,ends(end)-length(te))'];
-    Data.LE_Position_Z = [Data.LE_Position_Z ;zeros(1,ends(end)-length(te))'];
-    Data.RE_Position_X = [Data.RE_Position_X ;zeros(1,ends(end)-length(te))'];
-    Data.RE_Position_Y = [Data.RE_Position_Y ;zeros(1,ends(end)-length(te))'];
-    Data.RE_Position_Z = [Data.RE_Position_Z ;zeros(1,ends(end)-length(te))'];
-    stim{1} = [stim{1} zeros(1,ends(end)-length(te))];
-    stim{2} = [stim{2} zeros(1,ends(end)-length(te))];
-    te = [te zeros(1,ends(end)-length(te))];
-end
+
 if contains(info.dataType,'Activation')
     te = te(starts(1):ends(end));
     ts = ts(starts(1):ends(end));
@@ -137,6 +126,9 @@ else
     te = te(starts(1):ends(end)) - te(starts(1));
     ts = ts(starts(1):ends(end)) - ts(starts(1));
     t_snip = reshape(ts(1:length(stims))-ts(1),1,[]);
+end
+if iscell(stim)
+    stim = stim{1};
 end
 stim = stim(starts(1):ends(end));
 Data.LE_Position_X = Data.LE_Position_X(starts(1):ends(end));
