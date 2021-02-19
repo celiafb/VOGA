@@ -3,7 +3,7 @@ clc; clear all;
 warning('off');
 %directory=uigetdir(fullfile('/Volumes','labdata','Hageman','Moog','MoogChinchData-KH')); % Change '/Volumes' depending on whether you are on a Windows or Mac
 directory = uigetdir();
-directory=strcat(directory,'/'); % Change '/' to '\' depending on whether you are on a Windows or Mac
+directory=strcat(directory,'\'); % Change '/' to '\' depending on whether you are on a Windows or Mac
 typeOfData=input('Movement or ProsthesisOnly data? ','s'); %'Movement' data? Or 'ProsthesisOnly' Data?
  
 afterProsthSyncDate=true; %after 10/19/2016?
@@ -168,9 +168,9 @@ end
 %% Calculate Offsets
 if (haveOffsetFiles==true)
     if (afterProsthSyncDate)
-        [ZEROS_R, ZEROS_L]=calcOffsets(strcat(directory,'/OffsetCheck/'),coilOrientation1,coilOrientation2,1);
+        [ZEROS_R, ZEROS_L]=calcOffsets(directory,coilOrientation1,coilOrientation2,1);
     else
-        [ZEROS_R, ZEROS_L]=calcOffsets(strcat(directory,'/OffsetCheck/'),coilOrientation1,coilOrientation2,0);
+        [ZEROS_R, ZEROS_L]=calcOffsets(directory,coilOrientation1,coilOrientation2,0);
     end
 else
     ZEROS_R=[7.58e7 -2.2e7 -1.15e8 2.85e7 1.65e7 -4.49e7];  

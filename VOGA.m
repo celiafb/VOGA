@@ -20,7 +20,8 @@ ind = 1; %Run the start procedure first
 tf1 = 1;
 while tf1
     if strcmp(opts{ind},'Initialize')        
-        code_Path = [userpath,filesep,'VOGA'];
+        %code_Path = [userpath,filesep,'VOGA'];
+        code_Path = 'R:\Chow\MATLAB\VOGA';
         addpath(genpath(code_Path));
         path_folders = extractfield(dir,'name',find(extractfield(dir,'isdir')));
         expected = [any(contains(path_folders,'Raw Files')),any(contains(path_folders,'Segmented Files')),any(contains(path_folders,'Cycle Averages'))];
