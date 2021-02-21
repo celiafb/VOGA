@@ -3,7 +3,7 @@ clc; clear all;
 warning('off');
 %directory=uigetdir(fullfile('/Volumes','labdata','Hageman','Moog','MoogChinchData-KH')); % Change '/Volumes' depending on whether you are on a Windows or Mac
 directory = uigetdir();
-directory=strcat(directory,'/'); % Change '/' to '\' depending on whether you are on a Windows or Mac
+directory=strcat(directory,'\'); % Change '/' to '\' depending on whether you are on a Windows or Mac
 typeOfData=input('Movement or ProsthesisOnly data? ','s'); %'Movement' data? Or 'ProsthesisOnly' Data?
  
 afterProsthSyncDate=true; %after 10/19/2016?
@@ -107,7 +107,11 @@ switch(typeOfData)
                 movementDirection = movementDirection(1:dash_ind(1)-1);
         end
         
-        [mpufileList,coilfileList,freqList,ampList,numOfFiles,tiltAxisList,tiltDegList]=getMultipleFiles(directory,movementDirection,theta,phi);
+        try
+            [mpufileList,coilfileList,freqList,ampList,numOfFiles,tiltAxisList,tiltDegList]=getMultipleFiles(directory,movementDirection,theta,phi);
+        catch
+            continue
+        end
         % and now create the folder name where we will store the data to analyze
         if strcmp(movementDirection,'ObliqueAngleHorizontal') || strcmp(movementDirection,'ObliqueAngleSaggital') || strcmp(movementDirection,'ObliqueAngleCoronal')  || strcmp(movementDirection,'ObliqueAngleCombo')
             fdr = strcat('Analyze_',gainFile(1:8),'_',gainFile(10:14),'_',typeOfData,'_',movementDirection,'_theta',num2str(theta),'_','phi',num2str(phi));
@@ -268,7 +272,11 @@ for m = 1:numOfFiles
     switch(typeOfData)
         case 'Movement'
             %%Raw to Rot of the filtered raw data
-            [filteredRotrefR,filteredRotrefL,mpuAligned]=align(mpuData,filteredRawData,REF,frame,[],GAINSR,GAINSL,ZEROS_R,ZEROS_L);
+            try
+                [filteredRotrefR,filteredRotrefL,mpuAligned]=align(mpuData,filteredRawData,REF,frame,[],GAINSR,GAINSL,ZEROS_R,ZEROS_L);
+            catch
+                continue
+            end
             
             filteredMPU(:,1:2)=mpuAligned(:,1:2);
             for i=3:8
@@ -278,11 +286,19 @@ for m = 1:numOfFiles
             [unfilteredRotR,unfilteredRotL,unfilteredMpuAligned]=align(mpuData,coilData,REF,frame,[],GAINSR,GAINSL,ZEROS_R,ZEROS_L);
             
             %Rot2AngVel with the filtered data
-            angVelRpreSpline=rot2angvel(filteredRotrefR)/pi*180 * 1000;
-            angVelLpreSpline=rot2angvel(filteredRotrefL)/pi*180 * 1000;
+            try
+                angVelRpreSpline=rot2angvel(filteredRotrefR)/pi*180 * 1000;
+                angVelLpreSpline=rot2angvel(filteredRotrefL)/pi*180 * 1000;
+            catch
+                continue
+            end
             
             if (strcmp(movementDirection,'Yaw')||strcmp(movementDirection,'LARP') || strcmp(movementDirection,'RALP'))
-                [angVelR, angVelL]=desacc_prosthCanal(angVelRpreSpline,angVelLpreSpline);
+                try
+                    [angVelR, angVelL]=desacc_prosthCanal(angVelRpreSpline,angVelLpreSpline);
+                catch
+                    continue
+                end
             else
                 angVelR=angVelRpreSpline;
                 angVelL=angVelLpreSpline;
@@ -475,8 +491,12 @@ for m = 1:numOfFiles
         fname = sprintf(strcat(coilFile(17:21),'-','VisitNA','-',coilFile(1:8),'_',coilFile(10:15),'-',typeOfData2,'-Sine-',exptcond,'-MotionMod',Light,movementDirection2,'.mat'));
     end
     
+    try
+        toggle = createToggle(pshortenedMotion,Fs,freq,3);
+    catch
+        continue
+    end
     
-    toggle = createToggle(pshortenedMotion,Fs,freq,3);
     pshortenedMotion = {pshortenedMotion toggle};
 
     pshortenedFileL = rot2fick(pshortenedFileL); % inputs XYZ and outputs ZYX

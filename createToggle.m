@@ -59,6 +59,9 @@ switch method
         i = 2;
         while (trigger(i) < 0) || (trigger(i)*trigger(i-1) > 0)
             i = i + 1;
+            if i + 1 > length(trigger)
+                return
+            end
         end
         % when exiting while loop, i will be the first positive coefficient
         % of the trigger pulse after crossing 0, so here we start toggling

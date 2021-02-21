@@ -123,12 +123,16 @@ if((sum(findSac))>6)
     maskedData=zeros(length(angVelL(:,1))-1,6);
     
     %plot the masked Data - showing flat lines where saccade was found
-    for i=0:5
-        maskedData(:,i+1)=desaccMask(:,i+1).*filteredRawAngVel(1:end-1,mod(i,3)+1,round((i+1)/7)+1);
-        %   figure(i+1)
-        %   hold on
-        %   plot(filteredRawAngVel(:,i+1),'b')
-        %   plot(maskedData(:,i+1),'g')
+    try
+        for i=0:5
+            maskedData(:,i+1)=desaccMask(:,i+1).*filteredRawAngVel(1:end-1,mod(i,3)+1,round((i+1)/7)+1);
+            %   figure(i+1)
+            %   hold on
+            %   plot(filteredRawAngVel(:,i+1),'b')
+            %   plot(maskedData(:,i+1),'g')
+        end
+    catch
+        return
     end
     
     splinefitData=filteredRawAngVel(:,:,:);
