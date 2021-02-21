@@ -3,7 +3,7 @@ clc; clear all;
 warning('off');
 %directory=uigetdir(fullfile('/Volumes','labdata','Hageman','Moog','MoogChinchData-KH')); % Change '/Volumes' depending on whether you are on a Windows or Mac
 directory = uigetdir();
-directory=strcat(directory,'\'); % Change '/' to '\' depending on whether you are on a Windows or Mac
+directory=strcat(directory,'/'); % Change '/' to '\' depending on whether you are on a Windows or Mac
 typeOfData=input('Movement or ProsthesisOnly data? ','s'); %'Movement' data? Or 'ProsthesisOnly' Data?
  
 afterProsthSyncDate=true; %after 10/19/2016?
@@ -429,7 +429,9 @@ for m = 1:numOfFiles
         startIdx = extraTime;
         stopIdx = length(motionSync)-extraTime-1;
     end
-    
+    if (isempty(pshortenedTT)) || (isempty(pshortenedMotion)) || (isempty(pshortenedFileR))
+        continue
+    end
     [motionOffset,motionMag,motionSinphase]=SingleFreqDFT(pshortenedTT,pshortenedMotion,freq);
     for i=1:length(pshortenedMotion)
         motionFit(i)=motionMag*sin(2*pi*freq*i/1000+motionSinphase);
