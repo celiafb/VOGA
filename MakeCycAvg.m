@@ -180,8 +180,8 @@ while ~strcmp(opts{ind},'Save') %Run until it's ready to save or just hopeless
         filt_params_v = [vel_smooth;vel_spline;vel_acc;vel_med];        
         YLim_Pos = [-30 30];
         YLim_Vel = [-100 100];
-        [filt,Data_calc,LE_V,RE_V,Data_cal,Data_In] = MakeCycAvg__filterTraces(type,filt_params_p,filt_params_v,te,ts,Data,keep_inds); 
-        CycAvg = MakeCycAvg__makeStruct(LE_V,RE_V,keep_tr,Data,Fs,t_snip,stims,info,filt,In_FileName);
+        [filt,Data_calc,LE_V,RE_V,Data_cal,Data_In,LE_P,RE_P] = MakeCycAvg__filterTraces(type,filt_params_p,filt_params_v,te,ts,Data,keep_inds); 
+        CycAvg = MakeCycAvg__makeStruct(LE_V,RE_V,keep_tr,Data,Fs,t_snip,stims,info,filt,In_FileName,LE_P,RE_P);
         ha = MakeCycAvg__plotFullCycAvg([],type,colors,line_wid,YLim_Pos,YLim_Vel,te,ts,t_snip,stim,stims,Data,Data_In,Data_cal,Data_calc,LE_V,RE_V,CycAvg,keep_inds,keep_tr);
         % Determine if data are analyzeable
         analyze = nmquestdlg('Are these data analyzeable?','','Yes','No','Yes');
@@ -208,8 +208,8 @@ while ~strcmp(opts{ind},'Save') %Run until it's ready to save or just hopeless
         temp_filt_params_p = cellfun(@str2double,inputdlgcol(prompt,dlgtitle,[1 10],definput,'on',4,[11 6.5 3.5 4]));
         if ~isempty(temp_filt_params_p) %Didn't hit cancel
             filt_params_p = temp_filt_params_p;
-            [filt,Data_calc,LE_V,RE_V,Data_cal,Data_In] = MakeCycAvg__filterTraces(type,filt_params_p,filt_params_v,te,ts,Data,keep_inds); 
-            CycAvg = MakeCycAvg__makeStruct(LE_V,RE_V,keep_tr,Data,Fs,t_snip,stims,info,filt,In_FileName);
+            [filt,Data_calc,LE_V,RE_V,Data_cal,Data_In,LE_P,RE_P] = MakeCycAvg__filterTraces(type,filt_params_p,filt_params_v,te,ts,Data,keep_inds); 
+            CycAvg = MakeCycAvg__makeStruct(LE_V,RE_V,keep_tr,Data,Fs,t_snip,stims,info,filt,In_FileName,LE_P,RE_P);
             ha = MakeCycAvg__plotFullCycAvg(ha,type,colors,line_wid,YLim_Pos,YLim_Vel,te,ts,t_snip,stim,stims,Data,Data_In,Data_cal,Data_calc,LE_V,RE_V,CycAvg,keep_inds,keep_tr);
         end
     elseif strcmp(opts{ind},'Filter Velocity')
@@ -220,13 +220,13 @@ while ~strcmp(opts{ind},'Save') %Run until it's ready to save or just hopeless
         temp_filt_params_v = cellfun(@str2double,inputdlgcol(prompt,dlgtitle,[1 20],definput,'on',1,[11 7.25 2.25 3.25]));
         if ~isempty(temp_filt_params_v) %Didn't hit cancel
             filt_params_v = temp_filt_params_v;
-            [filt,Data_calc,LE_V,RE_V,Data_cal,Data_In] = MakeCycAvg__filterTraces(type,filt_params_p,filt_params_v,te,ts,Data,keep_inds); 
-            CycAvg = MakeCycAvg__makeStruct(LE_V,RE_V,keep_tr,Data,Fs,t_snip,stims,info,filt,In_FileName);
+            [filt,Data_calc,LE_V,RE_V,Data_cal,Data_In,LE_P,RE_P] = MakeCycAvg__filterTraces(type,filt_params_p,filt_params_v,te,ts,Data,keep_inds); 
+            CycAvg = MakeCycAvg__makeStruct(LE_V,RE_V,keep_tr,Data,Fs,t_snip,stims,info,filt,In_FileName,LE_P,RE_P);
             ha = MakeCycAvg__plotFullCycAvg(ha,type,colors,line_wid,YLim_Pos,YLim_Vel,te,ts,t_snip,stim,stims,Data,Data_In,Data_cal,Data_calc,LE_V,RE_V,CycAvg,keep_inds,keep_tr);
         end
     elseif strcmp(opts{ind},'Select Cycles')
         keep_tr = MakeCycAvg__selectCycles(type,keep_tr);
-        CycAvg = MakeCycAvg__makeStruct(LE_V,RE_V,keep_tr,Data,Fs,t_snip,stims,info,filt,In_FileName);
+        CycAvg = MakeCycAvg__makeStruct(LE_V,RE_V,keep_tr,Data,Fs,t_snip,stims,info,filt,In_FileName,LE_P,RE_P);
         ha = MakeCycAvg__plotFullCycAvg(ha,type,colors,line_wid,YLim_Pos,YLim_Vel,te,ts,t_snip,stim,stims,Data,Data_In,Data_cal,Data_calc,LE_V,RE_V,CycAvg,keep_inds,keep_tr);
         %[keep_tr,ha] = MakeCycAvg__selectCycles(ha,type,colors,line_wid,te,t_snip,stims,Fs,Data,info,filt,LE_V,RE_V,keep_inds,keep_tr,In_FileName);
     elseif strcmp(opts{ind},'Set Y-axis limits')
@@ -273,7 +273,7 @@ while ~strcmp(opts{ind},'Save') %Run until it's ready to save or just hopeless
     end
 end
 %% Save
-CycAvg = MakeCycAvg__makeStruct(LE_V,RE_V,keep_tr,Data,Fs,t_snip,stims,info,filt,In_FileName);
+CycAvg = MakeCycAvg__makeStruct(LE_V,RE_V,keep_tr,Data,Fs,t_snip,stims,info,filt,In_FileName,LE_P,RE_P);
 savefig([Cyc_Path,filesep,In_FileName(1:end-4),'.fig'])
 close;
 %Save if you reached this point

@@ -1,5 +1,5 @@
 %% Filter position and velocity
-function [filt,Data_calc,LE_V,RE_V,Data_cal,Data_In] = MakeCycAvg__filterTraces(type,filt_params_p,filt_params_v,te,ts,Data,keep_inds)
+function [filt,Data_calc,LE_V,RE_V,Data_cal,Data_In,LE_P,RE_P] = MakeCycAvg__filterTraces(type,filt_params_p,filt_params_v,te,ts,Data,keep_inds)
     %Make sure to add additional filter types to the filter parameter check
     %function
     %Position Filter Parameters
@@ -127,4 +127,12 @@ function [filt,Data_calc,LE_V,RE_V,Data_cal,Data_In] = MakeCycAvg__filterTraces(
     RE_V.RALP = Data_calc.RE_Vel_RALP(keep_inds);
     RE_V.X = Data_calc.RE_Vel_X(keep_inds);
     RE_V.Y = Data_calc.RE_Vel_Y(keep_inds);
+    
+    %And for Position MRC 3/2/21
+    LE_P.LHRH = Data_In.Data_LE_Pos_Z(keep_inds);
+    LE_P.X = Data_In.Data_LE_Pos_X(keep_inds);
+    LE_P.Y = Data_In.Data_LE_Pos_Y(keep_inds);
+    RE_P.LHRH = Data_In.Data_RE_Pos_Z(keep_inds);
+    RE_P.X = Data_In.Data_RE_Pos_X(keep_inds);
+    RE_P.Y = Data_In.Data_RE_Pos_Y(keep_inds);
 end

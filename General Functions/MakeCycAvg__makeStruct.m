@@ -1,5 +1,5 @@
 %% Make Cycle Average Struct
-function CycAvg = MakeCycAvg__makeStruct(LE_V,RE_V,keep_tr,Data,Fs,t_snip,stims,info,filt,In_FileName)
+function CycAvg = MakeCycAvg__makeStruct(LE_V,RE_V,keep_tr,Data,Fs,t_snip,stims,info,filt,In_FileName,LE_P,RE_P)
     CycAvg.old_Fs = Data.Fs;
     CycAvg.Fs = Fs;
     CycAvg.t = t_snip;
@@ -37,6 +37,13 @@ function CycAvg = MakeCycAvg__makeStruct(LE_V,RE_V,keep_tr,Data,Fs,t_snip,stims,
     CycAvg.rx_cyc = RE_V.X(:,keep_tr)';
     CycAvg.ly_cyc = LE_V.Y(:,keep_tr)';
     CycAvg.ry_cyc = RE_V.Y(:,keep_tr)';
+    %All position cycles
+    CycAvg.lz_pos_cyc = LE_P.LHRH(:,keep_tr)';
+    CycAvg.rz_pos_cyc = RE_P.LHRH(:,keep_tr)';
+    CycAvg.lx_pos_cyc = LE_P.X(:,keep_tr)';
+    CycAvg.rx_pos_cyc = RE_P.X(:,keep_tr)';
+    CycAvg.ly_pos_cyc = LE_P.Y(:,keep_tr)';
+    CycAvg.ry_pos_cyc = RE_P.Y(:,keep_tr)';
     %Raw data too
     CycAvg.raw_Data = Data;
     %Other relevant items
